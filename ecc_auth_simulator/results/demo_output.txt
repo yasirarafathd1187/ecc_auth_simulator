@@ -1,0 +1,53 @@
+=== Module 1: registration ===
+registered device_id=sensor-01 user=alice status=active
+public-key fingerprint (SHA-256): 920050e2a1fcd55d881d97950faf8e72...
+duplicate registration rejected: duplicate device ID
+password check (right): True
+password check (wrong): False
+
+=== Module 2: key management ===
+curve: NIST P-256 (secp256r1)
+fingerprint (short): 9200:50e2:a1fc:d55d
+private key exported to encrypted PEM (412 bytes), first line: -----BEGIN ENCRYPTED PRIVATE KEY-----
+re-imported key matches: True
+import with wrong password rejected
+
+=== Module 3: handshake ===
+server nonce      : c24f2b9c1f37b45a0471011a85feb80f...
+client nonce      : 2455386a4c60cb44517932eef1fabd11...
+client ephemeral  : 04e755992dd3cdd3ddd131176c5d286dde80c057...
+server ephemeral  : 04ce8503b1f4eab2ca84a450db92bf98909bbb41...
+client ECDSA sig  : 3046022100e749edb250abdd99538f5d4eda37ba...  (72 bytes)
+session id        : 0094c6bd115e23c4
+keys match        : True
+AES-256-GCM record: counter=0 ciphertext=0c234724d3384f774821147d97e4b525...
+server decrypts   : temperature=21.5C
+event log entries : 4
+
+=== Module 4: attack scenarios ===
+[PASS]  1. Replay             Replay a captured ClientHello
+[PASS]  2. Replay             Replay a captured encrypted record
+[PASS]  3. Replay             Use an expired challenge
+[PASS]  4. Replay             Use a challenge the server never issued
+[PASS]  5. Impersonation      Attacker signs with own key as a real device
+[PASS]  6. Impersonation      Unregistered device tries to log in
+[PASS]  7. Impersonation      Revoked device tries to log in
+[PASS]  8. MITM               Swap the client's ephemeral key in transit
+[PASS]  9. MITM               Swap the server's ephemeral key in transit
+[PASS] 10. MITM               Rogue server with a different key
+[PASS] 11. Integrity          Flip one bit of a ciphertext
+[PASS] 12. Integrity          Reuse a client signature as a server signature
+[PASS] 13. Forward secrecy    Steal both long-term keys after the session
+[PASS] 14. Denial of service  Burn an observed challenge
+14/14 scenarios behaved as expected
+
+=== Module 4: ECC P-256 vs RSA (this may take a minute) ===
+                 ECC P-256    RSA-2048    RSA-3072
+keygen ms           0.0152     43.7741    101.3004
+sign ms             0.0271      0.3591      0.9208
+verify ms           0.0793      0.0268      0.0490
+pubkey bytes            91         294         422
+sig bytes             71.1         256         384
+full handshake (median): 0.534 ms
+keygen: RSA-2048 is 2870x slower than ECC
+verify: ECDSA is 3.0x slower than RSA-2048 (RSA verify is cheap)

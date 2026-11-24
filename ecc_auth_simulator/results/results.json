@@ -1,0 +1,170 @@
+{
+  "environment": {
+    "python": "3.13.18",
+    "os": "Linux-6.18.44-fc-v819-x86_64-with-glibc2.39",
+    "quick_mode": false
+  },
+  "values_from_run": {
+    "fingerprint": "920050e2a1fcd55d881d97950faf8e72230459059a440d6800504c6acd4f1283",
+    "server_nonce": "c24f2b9c1f37b45a0471011a85feb80f0f573d32ccd0fb878ccbfbbede8fe1fa",
+    "client_eph": "04e755992dd3cdd3ddd131176c5d286dde80c057f49fe64e0a4bf04ac81f0722969e9e283332cd87baa3cb3838c8291cb395c7efa2a46a1e6a2a86397e3caa3c75",
+    "server_eph": "04ce8503b1f4eab2ca84a450db92bf98909bbb4107518bb21225a6afe3900e999182eb34cdcf21e45afdb3413a726b4653d0f4005465f17e13ccc961f11c99d942",
+    "signature": "3046022100e749edb250abdd99538f5d4eda37ba3f5dbfbb18f1151b0fe4aa9530943db6f0022100a9fc72e7bbcb55d2748a6540949b4ab9d11737a9b250f5ad33e74228e6195957",
+    "session_id": "0094c6bd115e23c4",
+    "record_ciphertext": "0c234724d3384f774821147d97e4b52553c9ec6131089d30410ddd1a38826e6585"
+  },
+  "attacks": [
+    {
+      "id": 1,
+      "category": "Replay",
+      "name": "Replay a captured ClientHello",
+      "expected": "Rejected",
+      "observed": "unknown or already-used challenge (replay?)",
+      "passed": true
+    },
+    {
+      "id": 2,
+      "category": "Replay",
+      "name": "Replay a captured encrypted record",
+      "expected": "Rejected",
+      "observed": "replayed or out-of-order record",
+      "passed": true
+    },
+    {
+      "id": 3,
+      "category": "Replay",
+      "name": "Use an expired challenge",
+      "expected": "Rejected",
+      "observed": "challenge expired",
+      "passed": true
+    },
+    {
+      "id": 4,
+      "category": "Replay",
+      "name": "Use a challenge the server never issued",
+      "expected": "Rejected",
+      "observed": "unknown or already-used challenge (replay?)",
+      "passed": true
+    },
+    {
+      "id": 5,
+      "category": "Impersonation",
+      "name": "Attacker signs with own key as a real device",
+      "expected": "Rejected",
+      "observed": "invalid device signature",
+      "passed": true
+    },
+    {
+      "id": 6,
+      "category": "Impersonation",
+      "name": "Unregistered device tries to log in",
+      "expected": "Rejected",
+      "observed": "device unknown, revoked or key expired",
+      "passed": true
+    },
+    {
+      "id": 7,
+      "category": "Impersonation",
+      "name": "Revoked device tries to log in",
+      "expected": "Rejected",
+      "observed": "device unknown, revoked or key expired",
+      "passed": true
+    },
+    {
+      "id": 8,
+      "category": "MITM",
+      "name": "Swap the client's ephemeral key in transit",
+      "expected": "Rejected",
+      "observed": "invalid device signature",
+      "passed": true
+    },
+    {
+      "id": 9,
+      "category": "MITM",
+      "name": "Swap the server's ephemeral key in transit",
+      "expected": "Rejected",
+      "observed": "server signature invalid (wrong server or tampered key)",
+      "passed": true
+    },
+    {
+      "id": 10,
+      "category": "MITM",
+      "name": "Rogue server with a different key",
+      "expected": "Rejected",
+      "observed": "server signature invalid (wrong server or tampered key)",
+      "passed": true
+    },
+    {
+      "id": 11,
+      "category": "Integrity",
+      "name": "Flip one bit of a ciphertext",
+      "expected": "Rejected",
+      "observed": "authentication tag check failed (tampered record)",
+      "passed": true
+    },
+    {
+      "id": 12,
+      "category": "Integrity",
+      "name": "Reuse a client signature as a server signature",
+      "expected": "Rejected",
+      "observed": "signature rejected for the other role",
+      "passed": true
+    },
+    {
+      "id": 13,
+      "category": "Forward secrecy",
+      "name": "Steal both long-term keys after the session",
+      "expected": "Old data safe",
+      "observed": "old session stays secret even with both long-term keys",
+      "passed": true
+    },
+    {
+      "id": 14,
+      "category": "Denial of service",
+      "name": "Burn an observed challenge",
+      "expected": "No auth, DoS only",
+      "observed": "attacker not authenticated; one handshake wasted, retry succeeds (DoS only)",
+      "passed": true
+    }
+  ],
+  "attacks_passed": 14,
+  "attacks_total": 14,
+  "benchmark": {
+    "ecc_p256": {
+      "keygen_ms": 0.01524999998991916,
+      "sign_ms": 0.027089500008514733,
+      "verify_ms": 0.07931750002398985,
+      "ecdh_ms": 0.059411500018313745,
+      "public_key_bytes": 91,
+      "public_point_bytes": 65,
+      "private_key_bytes": 138,
+      "signature_bytes": 71.1,
+      "signature_bytes_max": 72
+    },
+    "rsa_2048": {
+      "keygen_ms": 43.774099999978944,
+      "sign_ms": 0.3591214999971726,
+      "verify_ms": 0.026759000007814393,
+      "public_key_bytes": 294,
+      "private_key_bytes": 1217,
+      "signature_bytes": 256
+    },
+    "rsa_3072": {
+      "keygen_ms": 101.30043999998861,
+      "sign_ms": 0.9208225000065795,
+      "verify_ms": 0.049029999985350514,
+      "public_key_bytes": 422,
+      "private_key_bytes": 1795,
+      "signature_bytes": 384
+    },
+    "handshake_ms": 0.533959499989578,
+    "ratios": {
+      "keygen_rsa2048_over_ecc": 2870.432788781332,
+      "keygen_rsa3072_over_ecc": 6642.651807668991,
+      "sign_rsa2048_over_ecc": 13.256852281669799,
+      "verify_ecc_over_rsa2048": 2.964142905221678,
+      "pubkey_rsa2048_over_ecc": 3.230769230769231,
+      "signature_rsa2048_over_ecc": 3.6005625879043603
+    }
+  }
+}
