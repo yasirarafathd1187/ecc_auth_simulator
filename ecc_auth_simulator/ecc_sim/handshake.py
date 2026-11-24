@@ -102,11 +102,20 @@ class Session:
         self.recv_ctr = 0
 
     def seal(self, plaintext: bytes, aad: bytes = b"") -> tuple[int, bytes]:
+        if not isinstance(plaintext, bytes) or not isinstance(aad, bytes):
+            raise TypeError("plaintext and associated data must be bytes")
+        if self.send_ctr >= 2**96:
+            raise SessionError("record counter exhausted; establish a new session")
         ctr = self.send_ctr
+        ciphertext = self._send.encrypt(ctr.to_bytes(12, "big"), plaintext, self.session_id + aad)
         self.send_ctr += 1
-        return ctr, self._send.encrypt(ctr.to_bytes(12, "big"), plaintext, self.session_id + aad)
+        return ctr, ciphertext
 
     def open(self, ctr: int, ciphertext: bytes, aad: bytes = b"") -> bytes:
+        if not isinstance(ctr, int) or isinstance(ctr, bool) or ctr < 0 or ctr >= 2**96:
+            raise SessionError("invalid record counter")
+        if not isinstance(ciphertext, bytes) or not isinstance(aad, bytes):
+            raise SessionError("ciphertext and associated data must be bytes")
         if ctr != self.recv_ctr:
             raise SessionError("replayed or out-of-order record")
         try:
