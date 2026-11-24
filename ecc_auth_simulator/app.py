@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import io
 import sys
+import unittest
 from pathlib import Path
 
 import pandas as pd
@@ -213,7 +215,17 @@ elif page == "Secure Authentication":
                 client = Client(selected, device_keys[selected], server.public_key)
                 client_session, server_session = run_handshake(client, server)
                 counter, ciphertext = client_session.seal(message.encode("utf-8"))
+                tampered = bytearray(ciphertext)
+                tampered[-1] ^= 1
+                try:
+                    server_session.open(counter, bytes(tampered))
+                    tamper_rejected = False
+                except SessionError:
+                    tamper_rejected = True
                 plaintext = server_session.open(counter, ciphertext)
+                reply = f"ACK: received {len(plaintext)} bytes"
+                reply_counter, reply_ciphertext = server_session.seal(reply.encode("utf-8"))
+                client_reply = client_session.open(reply_counter, reply_ciphertext)
                 st.session_state.last_auth = {
                     "device": selected,
                     "session_id": client_session.session_id.hex(),
@@ -224,6 +236,8 @@ elif page == "Secure Authentication":
                     "counter": counter,
                     "ciphertext": ciphertext.hex(),
                     "plaintext": plaintext.decode("utf-8"),
+                    "reply": client_reply.decode("utf-8"),
+                    "tamper_rejected": tamper_rejected,
                 }
             except Exception as exc:
                 st.error(f"Authentication failed: {exc}")
@@ -241,7 +255,11 @@ elif page == "Secure Authentication":
             st.code(result["ciphertext"])
             st.markdown("**Server-decrypted plaintext**")
             st.code(result["plaintext"])
-            st.caption("The simulator performs both endpoints in one Python process; it is not a real network connection.")
+            st.markdown("**Encrypted server response received by client**")
+            st.code(result["reply"])
+            st.metric("Tampered ciphertext rejected", "YES" if result["tamper_rejected"] else "NO")
+            st.caption("Both directions use independent AES-GCM keys and counters. The tamper probe is rejected before the valid record is accepted.")
+            st.caption("This is an interactive protocol simulation inside one Streamlit process, not a deployed client/server network service.")
         with st.expander("What happens during the handshake?"):
             st.markdown("""
             1. The server issues a fresh, single-use challenge.
@@ -253,11 +271,33 @@ elif page == "Secure Authentication":
 
 
 elif page == "Security Tests":
-    page_header("Security Test Lab", "Execute the project's 14 built-in scenarios against fresh in-memory test environments.")
+    page_header("Security Test Lab", "Run adversarial protocol simulations and the complete automated regression suite.")
     st.warning("These are controlled, local demonstrations of defensive security properties—not tests against real systems.")
-    if st.button("Run all 14 security scenarios", type="primary"):
-        with st.spinner("Running security scenarios…"):
-            st.session_state.attack_results = analysis.run_attacks()
+    test_col, attack_col = st.columns(2)
+    with attack_col:
+        if st.button("Run all 14 attack simulations", type="primary", use_container_width=True):
+            with st.spinner("Running isolated attack scenarios…"):
+                st.session_state.attack_results = analysis.run_attacks()
+    with test_col:
+        if st.button("Run full Python regression suite", use_container_width=True):
+            output = io.StringIO()
+            suite = unittest.defaultTestLoader.discover(str(HERE / "tests"), pattern="test_*.py")
+            result = unittest.TextTestRunner(stream=output, verbosity=2).run(suite)
+            st.session_state.unit_test_result = {
+                "tests_run": result.testsRun,
+                "failures": len(result.failures),
+                "errors": len(result.errors),
+                "successful": result.wasSuccessful(),
+                "output": output.getvalue(),
+            }
+    unit = st.session_state.get("unit_test_result")
+    if unit:
+        a, b, c = st.columns(3)
+        a.metric("Python tests", unit["tests_run"])
+        b.metric("Failures + errors", unit["failures"] + unit["errors"])
+        c.metric("Suite", "PASS" if unit["successful"] else "FAIL")
+        with st.expander("Full test output", expanded=not unit["successful"]):
+            st.code(unit["output"])
     results = st.session_state.get("attack_results")
     if results:
         passed = sum(bool(item["passed"]) for item in results)
