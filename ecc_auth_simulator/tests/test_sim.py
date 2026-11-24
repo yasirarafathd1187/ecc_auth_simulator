@@ -83,5 +83,61 @@ class AttackTests(unittest.TestCase):
         self.assertEqual(failed, [])
 
 
+
+class HardeningTests(unittest.TestCase):
+    def test_registry_connection_can_be_used_from_another_thread(self):
+        import threading
+        reg = Registry()
+        errors = []
+        thread = threading.Thread(target=lambda: self._thread_lookup(reg, errors))
+        thread.start()
+        thread.join(timeout=5)
+        self.assertFalse(thread.is_alive(), "database lookup thread did not finish")
+        self.assertEqual(errors, [])
+
+    @staticmethod
+    def _thread_lookup(reg, errors):
+        try:
+            reg.events()
+        except Exception as exc:
+            errors.append(exc)
+
+    def test_rotation_rejects_another_devices_public_key(self):
+        reg = Registry()
+        _, first = enroll(reg, "alice", "dev-a")
+        second_key, _ = enroll(reg, "bob", "dev-b")
+        nonce = reg.new_registration_challenge()
+        proof = keys.sign(second_key, proof_message("dev-a", nonce))
+        with self.assertRaises(RegistryError):
+            reg.rotate("dev-a", "correct-horse-1", second_key.public_key(), nonce, proof)
+        self.assertEqual(reg.get_device("dev-a")["fingerprint"], first["fingerprint"])
+
+    def test_invalid_record_counters_are_rejected_cleanly(self):
+        e = analysis.Env()
+        client, server = run_handshake(e.client, e.server)
+        with self.assertRaises(SessionError):
+            server.open(-1, b"not-a-record")
+        with self.assertRaises(SessionError):
+            server.open(2**96, b"not-a-record")
+        counter, ciphertext = client.seal(b"valid")
+        self.assertEqual(server.open(counter, ciphertext), b"valid")
+
+    def test_failed_authentication_does_not_consume_receive_counter(self):
+        e = analysis.Env()
+        client, server = run_handshake(e.client, e.server)
+        counter, ciphertext = client.seal(b"message")
+        tampered = bytearray(ciphertext)
+        tampered[-1] ^= 1
+        with self.assertRaises(SessionError):
+            server.open(counter, bytes(tampered))
+        self.assertEqual(server.open(counter, ciphertext), b"message")
+
+    def test_password_hashes_are_not_plaintext(self):
+        reg = Registry()
+        enroll(reg, "alice", "dev-password", "a-strong-password")
+        row = reg.db.execute("SELECT pw_hash FROM devices WHERE device_id=?", ("dev-password",)).fetchone()
+        self.assertNotEqual(row[0], b"a-strong-password")
+        self.assertFalse(reg.verify_password("missing", "a-strong-password"))
+
 if __name__ == "__main__":
     unittest.main()
