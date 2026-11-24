@@ -19,7 +19,7 @@ streamlit run ecc_auth_simulator/app.py
 ## Deploy on Streamlit Community Cloud
 
 1. Sign in to Streamlit Community Cloud and connect your GitHub account.
-2. Select this repository and the `feature/streamlit-dashboard` branch (or `main` after merging the changes).
+2. Select this repository and the `main` branch.
 3. Set **Main file path** to `ecc_auth_simulator/app.py`.
 4. Deploy. The root-level `requirements.txt` installs the dependencies.
 
@@ -58,10 +58,19 @@ python run_demo.py --quick
 python -m unittest discover -s tests -v
 ```
 
+## Security validation and interactive lab
+
+- **Attack simulations:** run all 14 isolated scenarios covering replay, impersonation, revoked devices, key substitution, rogue servers, ciphertext tampering, role confusion, forward secrecy and challenge-consumption denial of service.
+- **Regression suite:** run the full Python `unittest` suite from the Security Tests page or locally with `python -m unittest discover -s ecc_auth_simulator/tests -v`.
+- **Interactive message exchange:** the Secure Authentication page now exercises both encrypted directions, displays the server response, and verifies that a modified AES-GCM record is rejected before the valid record is accepted.
+- **Key rotation hardening:** rotation rejects a public key already assigned to another device.
+- **Record validation:** invalid, negative, oversized and non-byte record inputs are rejected without advancing counters.
+- **CI:** pushes and pull requests run the regression suite on Python 3.11.
+
 ## Important limitations
 
-- This is an educational simulator. Client and server run in one Python process; it is not a real network service.
+- This remains an educational simulator. Client and server run in one Python process; it is **not** a real network service, and it does not expose an independent authentication API or connect physical devices.
 - The server public key is pinned in the client. The simulator does not implement a certificate authority or certificate-chain validation.
-- The Streamlit demo registry and device keys are kept in session memory and reset when the session restarts. Do not enter real passwords or production secrets.
+- The Streamlit demo registry and device keys are kept in per-browser-session memory and reset when the session restarts. They are not shared across users or persisted in a production database. Do not enter real passwords or production secrets.
 - Benchmark values depend on the machine and runtime. They are not universal performance guarantees.
 - The challenge-consumption scenario demonstrates a denial-of-service limitation; a passing test means the observed behaviour matches the scenario's expected result.
