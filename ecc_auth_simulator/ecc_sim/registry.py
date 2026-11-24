@@ -198,6 +198,14 @@ class Registry:
         fp = keys.fingerprint(new_public_key)
         if fp == rec["fingerprint"]:
             raise RegistryError("new key is identical to the current key")
+        # A rotated key must remain globally unique, just like an enrolled key.
+        duplicate = self.db.execute(
+            "SELECT device_id FROM devices WHERE fingerprint=? AND device_id<>?",
+            (fp, device_id),
+        ).fetchone()
+        if duplicate:
+            self.log("rotate_rejected", device_id, "public key already belongs to another device")
+            raise RegistryError("public key already registered to another device")
         now = self._now()
         self.db.execute(
             "UPDATE devices SET public_pem=?, fingerprint=?, key_version=key_version+1,"
