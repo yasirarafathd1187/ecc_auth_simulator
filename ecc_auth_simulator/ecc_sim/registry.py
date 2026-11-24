@@ -75,7 +75,11 @@ class Registry:
     """
 
     def __init__(self, path: str = ":memory:", now: Callable[[], float] = time.time):
-        self.db = sqlite3.connect(path)
+        # Streamlit reruns may access session-scoped objects from a different
+        # ScriptRunner thread. Permit cross-thread use of this per-session
+        # connection; each session executes its script sequentially.
+        self.db = sqlite3.connect(path, timeout=30, check_same_thread=False)
+        self.db.execute("PRAGMA busy_timeout = 30000")
         self.db.executescript(self.SCHEMA)
         self._now = now
         self._challenges: dict[bytes, float] = {}
